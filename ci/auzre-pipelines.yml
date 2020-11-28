@@ -1,0 +1,183 @@
+name: $(SourceBranchName)_$(date:yyyyMMdd)$(rev:.r)
+pool:
+  vmImage: ubuntu-latest
+
+pr:
+  branches:
+    include:
+    - master
+    - main
+    - develop
+    - refs/tags/v*
+  paths:
+    exclude:
+    - docs/*
+    - README.md
+    - azure-pipelines-test.yml
+
+trigger:
+  branches:
+    include:
+    - master
+    - main
+    - develop
+    - refs/tags/v*
+  paths:
+    exclude:
+    - docs/*
+    - README.md
+    - azure-pipelines-test.yml
+
+variables:
+- name: node_version
+  value: "10.x"
+- name: tfx_version
+  value: "v0.8.x"
+- name: PublisherID
+  value: "synker"
+- name: "ExtensionID"
+  value: "prom-art"
+- name: "ExtensionName"
+  value: "promote artifact"
+- name: marketplace_service_conn
+  value: vs_marketplace
+- name: ArtifactName
+  value: task
+- name: EXT_VERSION
+  value: "1.0.0"
+
+stages:
+- stage: Build
+  jobs:
+  - job:
+    steps:
+    - checkout: self
+      persistCredentials: true
+      clean: true
+    - task: NodeTool@0
+      inputs:
+        versionSpec: $(node_version)
+    - task: Npm@1
+      displayName: 'Install'
+      inputs:
+        command: 'custom'
+        customCommand: 'run initdev'
+    - task: Npm@1
+      displayName: 'Lint'
+      continueOnError: true
+      inputs:
+        command: custom
+        verbose: false
+        customCommand: 'run lint'
+    - task: Npm@1
+      displayName: 'Build'
+      inputs:
+        command: custom
+        verbose: false
+        customCommand: 'run build'
+    - task: Npm@1
+      displayName: 'Test'
+      env:
+        PAT_HENI_FAZZANI_ARTIFACTS: $(PAT_HENI_FAZZANI_ARTIFACTS)
+      inputs:
+        command: custom
+        verbose: false
+        customCommand: 'run tests'
+    - task: PublishTestResults@2
+      displayName: 'Publish tests results'
+      enabled: false
+      inputs:
+        testResultsFormat: 'JUnit'
+        testResultsFiles: '**/ResultsFile.xml'
+    - task: SnykSecurityScan@0
+      displayName: Security Scan
+      inputs:
+        serviceConnectionEndpoint: 'snyk'
+        testType: 'app'
+        severityThreshold: 'medium'
+        monitorOnBuild: false
+        additionalArguments: '--all-projects --detection-depth=6'
+        failOnIssues: false
+        projectName: 'as-tasks'
+
+- stage: Package_extension_and_publish_build_artifacts
+  dependsOn: Build
+  jobs:
+  - job:
+    steps:
+      - task: TfxInstaller@3
+        inputs:
+          version: $(tfx_version)
+      - task: Npm@1
+        displayName: 'Install Node dependencies'
+        inputs:
+          command: 'custom'
+          customCommand: 'run initdev'
+      - task: Bash@3
+        displayName: Compile Javascript
+        inputs:
+          targetType: "inline"
+          script: |
+            tsc
+      - task: QueryAzureDevOpsExtensionVersion@3
+        continueOnError: true
+        displayName: Get Extension Version
+        inputs:
+          connectTo: 'VsTeam'
+          connectedServiceName: '$(marketplace_service_conn)'
+          publisherId: '$(PublisherID)'
+          extensionId: '$(ExtensionID)'
+          versionAction: 'Patch'
+          outputVariable: 'Task.Extension.Version'
+          # extensionVersionOverride: 'EXT_VERSION'
+          setBuildNumber: true
+
+      - task: PackageAzureDevOpsExtension@3
+        inputs:
+          rootFolder: '$(System.DefaultWorkingDirectory)'
+          publisherId: '$(PublisherID)'
+          extensionId: '$(ExtensionID)'
+          extensionName: '$(ExtensionName)'
+          extensionVersion: '$(Task.Extension.Version)'
+          extensionTag: '-build'
+          updateTasksVersion: true
+          updateTasksVersionType: 'patch'
+          extensionVisibility: private #'public'
+          extensionPricing: 'free'
+      - task: CopyFiles@2
+        displayName: "Copy Files to: $(Build.ArtifactStagingDirectory)"
+        inputs:
+          Contents: "**/*.vsix"
+          TargetFolder: "$(Build.ArtifactStagingDirectory)"
+      - task: PublishBuildArtifacts@1
+        inputs:
+          PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+          ArtifactName: '$(ArtifactName)'
+          publishLocation: 'Container'
+
+- stage: Download_build_artifacts_and_publish_the_extension
+  dependsOn: Package_extension_and_publish_build_artifacts
+  jobs:
+    - job:
+      steps:
+        - task: TfxInstaller@3
+          inputs:
+            version: $(tfx_version)
+        - task: DownloadBuildArtifacts@0
+          inputs:
+            buildType: "current"
+            downloadType: "single"
+            artifactName: "$(ArtifactName)"
+            downloadPath: "$(System.DefaultWorkingDirectory)"
+        - task: PublishAzureDevOpsExtension@3
+          inputs:
+            connectTo: 'VsTeam'
+            connectedServiceName: '$(marketplace_service_conn)'
+            fileType: 'vsix'
+            vsixFile: './$(ArtifactName)/$(PublisherID).*.vsix'
+            publisherId: '$(PublisherID)'
+            extensionId: '$(ExtensionID)'
+            extensionName: '$(ExtensionName)'
+            updateTasksVersion: false
+            extensionVisibility: 'public'
+            extensionPricing: 'free'

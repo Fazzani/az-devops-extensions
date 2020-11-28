@@ -1,0 +1,55 @@
+{
+  "manifestVersion": 1,
+  "id": "prom-art",
+  "name": "promote artifact",
+  "version": "1.0.0",
+  "publisher": "synker",
+  "content": {
+    "license": {
+      "path": "license.md"
+    },
+    "details": {
+      "path": "overview.md"
+    }
+  },
+  "galleryFlags": ["Preview"],
+  "branding": {
+    "color": "rgb(243, 243, 243)",
+    "theme": "dark"
+  },
+  "repository": {
+    "type": "git",
+    "uri": "https://github.com/Fazzani/az-tasks"
+  },
+  "tags": ["artifacts", "promote"],
+  "targets": [
+    {
+      "id": "Microsoft.VisualStudio.Services"
+    }
+  ],
+  "scopes": ["vso.packaging_manage"],
+  "description": "Tool for auto promoting artifacts (nuget, npm) from differents views (Local, Prerelease, Release)",
+  "categories": ["Azure Pipelines"],
+  "icons": {
+    "default": "images/extension-icon.png"
+  },
+  "files": [
+    {
+      "path": "tasks/promote"
+    },
+    {
+      "path": "images",
+      "addressable": true
+    }
+  ],
+  "contributions": [
+    {
+      "id": "348a929c-c1a4-4e8b-bfb5-116593eb20f9",
+      "type": "ms.vss-distributed-task.task",
+      "targets": ["ms.vss-distributed-task.tasks"],
+      "properties": {
+        "name": "tasks/promote"
+      }
+    }
+  ]
+}

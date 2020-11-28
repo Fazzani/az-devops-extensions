@@ -1,0 +1,12 @@
+{
+    "compileOnSave": true,
+    "compilerOptions": {
+        "target": "es6",
+        "module": "commonjs",
+        "inlineSourceMap": true,
+        "removeComments": true
+    },
+    "exclude": [
+        "node_modules"
+    ]
+}

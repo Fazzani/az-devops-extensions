@@ -1,0 +1,27 @@
+name: $(SourceBranchName)_$(date:yyyyMMdd)$(rev:.r)
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+- task: prom-art@1
+  displayName: 'from file'
+  continueOnError: true
+  inputs:
+    feed: '9a9327ae-8c62-4cc1-80a5-7365f97a5b87'
+    inputType: 'packageFiles'
+    packagesDirectory: '$(System.DefaultWorkingDirectory)/tasks/promote/tests/tests_artifacts'
+    packagesPattern: |
+      **/*.nupkg
+      !**/*.symbols.nupkg
+      **/*.tgz
+    releaseView: '3994fcd9-c11e-48da-bbf9-0b1c341afaf4'
+
+- task: promo-art@1
+  displayName: 'From published package'
+  continueOnError: true
+  inputs:
+    feed: '9a9327ae-8c62-4cc1-80a5-7365f97a5b87'
+    inputType: 'nameVersion'
+    definition: '60d0764f-c543-465e-98c6-04c52bf3e09e'
+    version: '1.3.0-beta.28'
+    releaseView: '3994fcd9-c11e-48da-bbf9-0b1c341afaf4'
