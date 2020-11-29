@@ -12,19 +12,25 @@ export enum HttpMethod {
 }
 
 export class Common {
-  static async makeRequest(
-    token: string,
-    url: string,
-    payload?: object,
-    params?: object,
-    method: HttpMethod = HttpMethod.Get,
-    stringifyData: boolean = true,
-  ): Promise<[number, any]> {
+  static async makeRequest({
+    token,
+    url,
+    payload,
+    params,
+    method = HttpMethod.Get,
+    stringifyData = true,
+  }: {
+    token: string;
+    url: string;
+    payload?: object;
+    params?: object;
+    method?: HttpMethod;
+    stringifyData?: boolean;
+  }): Promise<[number, any]> {
     tl.debug(`${url}`);
-    tl.debug(`${token}`);
     try {
       let data: string | object = payload;
-      if (payload === undefined && stringifyData) data = qs.stringify(payload);
+      if (payload === null && stringifyData) data = qs.stringify(payload);
 
       const result = await axios.default({
         method,

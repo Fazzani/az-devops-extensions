@@ -6,10 +6,8 @@ Azure devops auto promote packages (nuget, npm)
 
 ## TODO
 
-- [x] az pipeline
-- [ ] complete the task
-- [x] create icon (synker)
-
+- [ ] npm task test
+- [ ] add sonar task to the solution
 
 ## References
 
