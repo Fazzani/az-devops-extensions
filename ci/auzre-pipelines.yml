@@ -75,14 +75,10 @@ stages:
         command: custom
         verbose: false
         customCommand: 'run build'
-    - task: Npm@1
+    - script: |
+       export ENDPOINT_AUTH_PARAMETER_SYSTEMVSSCONNECTION_ACCESSTOKEN=$(PAT_HENI_FAZZANI_ARTIFACTS)
+       npm run tests
       displayName: 'Test'
-      env:
-        PAT_HENI_FAZZANI_ARTIFACTS: $(PAT_HENI_FAZZANI_ARTIFACTS)
-      inputs:
-        command: custom
-        verbose: false
-        customCommand: 'run tests'
     - task: PublishTestResults@2
       displayName: 'Publish tests results'
       enabled: false
@@ -100,7 +96,8 @@ stages:
         failOnIssues: false
         projectName: 'as-tasks'
 
-- stage: Package_extension_and_publish_build_artifacts
+- stage: Package
+  condition: and(succeeded(), startsWith('Build.SourceBranch', 'refs/tags/*'))
   dependsOn: Build
   jobs:
   - job:
@@ -155,8 +152,9 @@ stages:
           ArtifactName: '$(ArtifactName)'
           publishLocation: 'Container'
 
-- stage: Download_build_artifacts_and_publish_the_extension
-  dependsOn: Package_extension_and_publish_build_artifacts
+- stage: Publish
+  dependsOn: Package
+  condition: and(succeeded(), startsWith('Build.SourceBranch', 'refs/tags/*'))
   jobs:
     - job:
       steps:

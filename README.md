@@ -2,12 +2,16 @@
 
 [![Build Status](https://dev.azure.com/henifazzani/SynkerAPI/_apis/build/status/Fazzani.az-task-promote?branchName=main)](https://dev.azure.com/henifazzani/SynkerAPI/_build/latest?definitionId=29&branchName=main)
 
-Azure devops auto promote packages (nuget, npm)
+Azure devops auto promote packages (nuget, npm) task
 
 ## TODO
 
-- [ ] npm task test
+- [ ] npm task test (see: success.ts)
 - [ ] add sonar task to the solution
+- [ ] Enhance readme.md
+- [ ] Npm package test
+- [ ] Maven, pipy and universal to manage
+- [x] Enhance az pipelines deployment only from master
 
 ## References
 

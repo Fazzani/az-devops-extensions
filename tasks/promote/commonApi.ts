@@ -1,3 +1,14 @@
+
+// eslint-disable-next-line no-shadow
+export enum JsonPatchOperationTypeEnum {
+  add = 0,
+  remove = 1,
+  replace = 2,
+  move = 3,
+  copy = 4,
+  test = 5,
+}
+
 export interface JsonPatchOperation {
   /**
    * The path to copy from for the Move/Copy operation.
@@ -6,7 +17,7 @@ export interface JsonPatchOperation {
   /**
    * The patch operation
    */
-  op: Operation;
+  op: JsonPatchOperationTypeEnum;
   /**
    * The path for the operation. In the case of an array, a zero based index can be used to specify the position in the array (e.g. /biscuits/0/name). The "-" character can be used instead of an index to insert at the end of the array (e.g. /biscuits/-).
    */
@@ -17,19 +28,11 @@ export interface JsonPatchOperation {
   value: any;
 }
 
-export enum Operation {
-  Add = 0,
-  Remove = 1,
-  Replace = 2,
-  Move = 3,
-  Copy = 4,
-  Test = 5,
-}
-
+// eslint-disable-next-line no-shadow
 export enum PackageViews {
-  Local = 'local',
-  PreRelease = 'Prerelease',
-  Release = 'Release',
+  local = 'local',
+  preRelease = 'Prerelease',
+  release = 'Release',
 }
 
 export type Feed = {
