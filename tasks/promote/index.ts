@@ -1,9 +1,11 @@
+/* eslint-disable @typescript-eslint/restrict-template-expressions */
+/* eslint-disable no-shadow */
+/* eslint-disable @typescript-eslint/no-misused-promises */
 import * as tl from 'azure-pipelines-task-lib/task';
-import { PackageAPI } from './packageApi';
 import * as url from 'url';
 import * as fg from 'fast-glob';
-
-const run = async () => {
+import {packageApi} from './packageApi';
+const run = async (): Promise<void> => {
   try {
     const option = readInputs();
     tl.debug(`Inputs: ${JSON.stringify(option)}`);
@@ -15,27 +17,24 @@ const run = async () => {
       return;
     }
 
-    const pat = tl.getEndpointAuthorizationParameter('SystemVssConnection', 'AccessToken', false);
-
     switch (option.packageType) {
       case PackageTypeEnum.nameVersion:
+        // eslint-disable-next-line @typescript-eslint/no-misused-promises
         option.packageIds.forEach(async (pkgId) => {
-          const pkgVersions = await PackageAPI.get({
+          const pkgVersions = await packageApi.get({
             org: option.tfsUri.org,
-            pat,
             feedId: option.feedId,
             packageId: pkgId,
           });
-          if (pkgVersions!.count === 0) {
+          if (pkgVersions.count === 0) {
             tl.warning(`No package founded with this id: ${pkgId}`);
           } else {
             tl.debug(
               `promoting package ${pkgVersions.value[0].author}:${option.version} into feed ${option.feedId} to view ${option.viewId} from file`,
             );
             if (
-              !(await PackageAPI.promote({
+              !(await packageApi.promote({
                 org: option.tfsUri.org,
-                pat,
                 feedId: option.feedId,
                 packageName: pkgVersions.value[0].author,
                 packageVersion: option.version,
@@ -63,12 +62,11 @@ const run = async () => {
 
         files.forEach(async (pp) => {
           tl.debug(`Searching with glob ${pp}into folder ${option.packagesDirectory}`);
-          const pi = await PackageAPI.getInfo({ filePath: pp });
+          const pi =  packageApi.getInfo({ filePath: pp });
           tl.debug(`promoting package ${pi.name}:${pi.version} into feed ${option.feedId} to view ${option.viewId}`);
           if (
-            !(await PackageAPI.promote({
-              org: option.tfsUrl.org,
-              pat,
+            !(await packageApi.promote({
+              org: option.tfsUri.org,
               feedId: option.feedId,
               packageName: pi.name,
               packageVersion: pi.version,
@@ -142,4 +140,4 @@ enum PackageTypeEnum {
   nameVersion,
 }
 
-run();
+void run();

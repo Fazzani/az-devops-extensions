@@ -8,6 +8,7 @@ Azure devops auto promote packages (nuget, npm)
 
 - [ ] npm task test
 - [ ] add sonar task to the solution
+- [ ] Enhance az pipelines deployment only from master
 
 ## References
 

@@ -1,27 +1,30 @@
-import { Common, HttpMethod } from './common';
-import { JsonPatchOperation, Operation, ResponseList } from './commonApi';
+/* eslint-disable no-shadow */
+/* eslint-disable @typescript-eslint/unbound-method */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+import { JsonPatchOperation, JsonPatchOperationTypeEnum, ResponseList } from './commonApi';
 import * as tl from 'azure-pipelines-task-lib/task';
 import * as admzip from 'adm-zip';
 import * as parser from 'fast-xml-parser';
 import * as fs from 'fs';
 import path = require('path');
-import { FeedAPI } from './feedApi';
+import { ApiBase } from './common/apiBase';
+import { TaskConfig } from './common/taskConfig';
+import { feedApi } from './feedApi';
 
 type CallbackFunctionVariadic = (...args: any[]) => PackageResult;
 
-export class PackageAPI {
-  public static async getInfo({
-    filePath,
-    type = ProtocolType.NuGet,
-  }: {
-    filePath: string;
-    type?: ProtocolType;
-  }): Promise<PackageResult> {
+export class PackageAPI extends ApiBase {
+  constructor(config: TaskConfig) {
+    super(config);
+  }
+
+  public getInfo({ filePath, type = ProtocolType.nuGet }: { filePath: string; type?: ProtocolType }): PackageResult {
     switch (type) {
-      case ProtocolType.NuGet:
-        return await PackageAPI.extractPackages(filePath, PackageAPI.nuspecReader);
-      case ProtocolType.Npm:
-        return await PackageAPI.extractPackages(filePath, PackageAPI.npmReader);
+      case ProtocolType.nuGet:
+        return this.extractPackages(filePath, PackageAPI.nuspecReader);
+      case ProtocolType.npm:
+        return this.extractPackages(filePath, PackageAPI.npmReader);
       default:
         tl.warning(`not supported type ${type}`);
         break;
@@ -31,20 +34,20 @@ export class PackageAPI {
 
   public static nuspecReader(fileData: string): PackageResult {
     if (!!parser.validate(fileData)) {
-      const jsonObj: unknown = parser.parse(fileData);
+      const jsonObj: any = parser.parse(fileData);
       tl.debug(`NuspecReader: ${JSON.stringify(jsonObj)}`);
-      return { name: jsonObj!.package.metadata.id, version: jsonObj.package.metadata.version } as PackageResult;
+      return { name: jsonObj.package.metadata.id, version: jsonObj.package.metadata.version } as PackageResult;
     }
   }
 
   public static npmReader(fileData: string): PackageResult {
     if (fileData == null) new Error('not allowed value: fileData is null');
-    const jsonObj: unknown = JSON.parse(fileData);
+    const jsonObj: any = JSON.parse(fileData);
     tl.debug(`NpmReader: ${JSON.stringify(jsonObj)}`);
     return jsonObj as PackageResult;
   }
 
-  public static async extractPackages(filePath: string, reader: CallbackFunctionVariadic): Promise<PackageResult> {
+  public extractPackages(filePath: string, reader: CallbackFunctionVariadic): PackageResult {
     try {
       const ext = path.extname(filePath);
       switch (ext) {
@@ -69,46 +72,39 @@ export class PackageAPI {
     return null;
   }
 
-  public static async promote({
+  public async promote({
     org,
     project,
-    pat,
     feedId,
     packageName,
     packageVersion,
-    packageType = ProtocolType.NuGet,
+    packageType = ProtocolType.nuGet,
     viewId = 'Prerelease',
-    operation = Operation.Add,
+    operation = JsonPatchOperationTypeEnum.add,
     baseUrl = 'https://pkgs.dev.azure.com/',
-    apiVersion = '?api-version=5.0-preview.1',
   }: {
     org: string;
     project?: string;
-    pat: string;
     feedId: string;
     packageName: string;
     packageVersion: string;
     packageType?: ProtocolType;
     viewId?: string;
-    operation?: Operation;
+    operation?: JsonPatchOperationTypeEnum;
     baseUrl?: string;
-    apiVersion?: string;
   }): Promise<boolean> {
-    const feed = await FeedAPI.findById({ org, project, pat, feedId });
+    const feed = await feedApi.findById({ org, project, feedId });
     if (feed == null) {
       tl.error(`Feed ${feedId} not found`);
       return false;
     }
-    const pkg = await PackageAPI.getVersionByName({
+    const pkg = await this.getVersionByName({
       org,
       project,
-      pat,
       feedName: feed.name,
       packageName,
       packageVersion,
       packageType,
-      baseUrl,
-      apiVersion,
     });
     if (pkg == null) {
       tl.warning(`Package not found ${packageName}`);
@@ -121,48 +117,38 @@ export class PackageAPI {
       }
       apiUrl += `_apis/packaging/feeds/${
         feed.name
-      }/${packageType.toLocaleLowerCase()}/packages/${packageName}/versions/${packageVersion}${apiVersion}`;
+      }/${packageType.toLocaleLowerCase()}/packages/${packageName}/versions/${packageVersion}`;
       const payload: any = { views: { op: operation, path: '/views/-', value: `${viewId}` } as JsonPatchOperation };
-      const [status] = await Common.makeRequest({
-        token: pat,
-        url: apiUrl,
-        payload,
-        method: HttpMethod.PATCH,
-        stringifyData: false,
-      });
-      return status === 200 || status === 202;
+      const [status]: [number] = await this.client.patch(apiUrl, payload);
+      return status <= 202;
     }
   }
 
-  public static async getVersionByName({
+  public async getVersionByName({
     org,
     project,
-    pat,
     feedName,
     packageName,
     packageVersion,
-    packageType = ProtocolType.NuGet,
+    packageType = ProtocolType.nuGet,
     baseUrl = 'https://pkgs.dev.azure.com/',
-    apiVersion = '?api-version=5.0-preview.1',
   }: {
     org: string;
     project?: string;
-    pat: string;
     feedName: string;
     packageName: string;
     packageVersion: string;
     packageType?: ProtocolType;
     baseUrl?: string;
-    apiVersion?: string;
   }): Promise<Package> {
     try {
       let apiUrl = `${baseUrl}${org}/`;
       if (project != null) {
         apiUrl += `${project}/`;
       }
-      apiUrl += `_apis/packaging/feeds/${feedName}/${packageType.toLowerCase()}/packages/${packageName.toLocaleLowerCase()}/versions/${packageVersion}${apiVersion}`;
-      const [, pkg] = await Common.makeRequest({ token: pat, url: apiUrl });
-      return pkg as Package;
+      apiUrl += `_apis/packaging/feeds/${feedName}/${packageType.toLowerCase()}/packages/${packageName.toLocaleLowerCase()}/versions/${packageVersion}`;
+      const [, pkg]: [number, Package] = await this.client.get(apiUrl);
+      return pkg;
     } catch (error) {
       if (error.response.status === 404) {
         tl.debug(`Package ${packageName} with version ${packageVersion} not found`);
@@ -171,35 +157,32 @@ export class PackageAPI {
     }
   }
 
-  public static async getVersionById({
+  public async getVersionById({
     org,
     project,
-    pat,
     feedId,
     packageId,
     packageVersionId,
-    packageType = ProtocolType.NuGet,
+    packageType = ProtocolType.nuGet,
     baseUrl = 'https://pkgs.dev.azure.com/',
-    apiVersion = '?api-version=5.0-preview.1',
   }: {
     org: string;
     project?: string;
-    pat: string;
     feedId: string;
     packageId: string;
     packageVersionId: string;
     packageType?: ProtocolType;
     baseUrl?: string;
-    apiVersion?: string;
   }): Promise<PackageVersion> {
     try {
       let apiUrl = `${baseUrl}${org}/`;
       if (project != null) {
         apiUrl += `${project}/`;
       }
-      apiUrl += `_apis/packaging/feeds/${feedId}/${packageType.toLowerCase()}/packages/${packageId}/versions/${packageVersionId}${apiVersion}`;
-      const [, pkg] = await Common.makeRequest({ token: pat, url: apiUrl });
-      return pkg as PackageVersion;
+      apiUrl += `_apis/packaging/feeds/${feedId}/${packageType.toLowerCase()}/packages/${packageId}/versions/${packageVersionId}`;
+
+      const [, pkg]: [number, PackageVersion] = await this.client.get(apiUrl);
+      return pkg;
     } catch (error) {
       if (error.response && error.response.status === 404) {
         tl.warning(`Package ${packageId} with version ${packageVersionId} not found`);
@@ -208,10 +191,9 @@ export class PackageAPI {
     }
   }
 
-  public static async get({
+  public async get({
     org,
     project,
-    pat,
     feedId,
     packageId,
     includeAllVersions = false,
@@ -221,11 +203,9 @@ export class PackageAPI {
     isListed = true,
     isRelease = true,
     baseUrl = 'https://feeds.dev.azure.com/',
-    apiVersion = '?api-version=6.1-preview.1',
   }: {
     org: string;
     project?: string;
-    pat: string;
     feedId: string;
     packageId: string;
     includeAllVersions?: boolean;
@@ -235,17 +215,14 @@ export class PackageAPI {
     isListed?: boolean;
     isRelease?: boolean;
     baseUrl?: string;
-    apiVersion?: string;
   }): Promise<ResponseList<Package>> {
     try {
       let apiUrl = `${baseUrl}${org}/`;
       if (project != null) {
         apiUrl += `${project}/`;
       }
-      apiUrl += `_apis/packaging/feeds/${feedId}/packages/${packageId}/versions${apiVersion}`;
-      const [, pkg] = await Common.makeRequest({
-        token: pat,
-        url: apiUrl,
+      apiUrl += `_apis/packaging/feeds/${feedId}/packages/${packageId}/versions`;
+      const [, pkgs]: [number, ResponseList<Package>] = await this.client.get(apiUrl, {
         params: {
           includeAllVersions,
           includeDeleted,
@@ -255,7 +232,7 @@ export class PackageAPI {
           isRelease,
         },
       });
-      return pkg as ResponseList<Package>;
+      return pkgs;
     } catch (error) {
       if (error.response.status === 404) {
         tl.warning(`Package ${packageId} not found`);
@@ -264,35 +241,29 @@ export class PackageAPI {
     }
   }
 
-  public static async list({
+  public async list({
     org,
     project,
-    pat,
     feedId,
     top,
     skip,
     packageNameQuery,
     baseUrl = 'https://feeds.dev.azure.com/',
-    apiVersion = '?api-version=5.0-preview.1',
   }: {
     org: string;
     project?: string;
-    pat: string;
     feedId: string;
     top: number;
     skip: number;
     packageNameQuery: string;
     baseUrl?: string;
-    apiVersion?: string;
   }): Promise<ResponseList<Package>> {
     let apiUrl = `${baseUrl}${org}/`;
     if (project != null) {
       apiUrl += `${project}/`;
     }
-    apiUrl += `_apis/packaging/feeds/${feedId}/packages${apiVersion}`;
-    const [, pkgs]: [number, ResponseList<Package>] = await Common.makeRequest({
-      token: pat,
-      url: apiUrl,
+    apiUrl += `_apis/packaging/feeds/${feedId}/packages`;
+    const [, pkgs]: [number, ResponseList<Package>] = await this.client.get(apiUrl, {
       params: {
         packageNameQuery,
         skip,
@@ -302,33 +273,24 @@ export class PackageAPI {
     return pkgs;
   }
 
-  public static async findByName({
+  public async findByName({
     org,
     project,
-    pat,
     feedId,
     packageName,
-    baseUrl = 'https://feeds.dev.azure.com/',
-    apiVersion = '?api-version=5.0-preview.1',
   }: {
     org: string;
     project?: string;
-    pat: string;
     feedId: string;
     packageName: string;
-    baseUrl?: string;
-    apiVersion?: string;
   }): Promise<Package> {
-    const pkgs = await PackageAPI.list({
+    const pkgs = await this.list({
       org,
       project,
-      pat,
       feedId,
       top: 1,
       skip: 0,
       packageNameQuery: packageName,
-      baseUrl,
-      apiVersion,
     });
     if (pkgs.count > 0) return pkgs.value[0];
     return null;
@@ -336,11 +298,11 @@ export class PackageAPI {
 }
 
 export enum ProtocolType {
-  Npm = 'Npm',
-  NuGet = 'NuGet',
-  Maven = 'Maven',
-  Python = 'PyPi',
-  Universal = 'Upack',
+  npm = 'Npm',
+  nuGet = 'NuGet',
+  maven = 'Maven',
+  pypi = 'PyPi',
+  universal = 'Upack',
 }
 
 export interface Package {
@@ -380,12 +342,14 @@ export interface FeedView {
   type: FeedViewType;
 }
 
+// eslint-disable-next-line no-shadow
 export enum FeedViewType {
   implicit = 'implicit',
   none = 'none',
   release = 'release',
 }
 
+// eslint-disable-next-line no-shadow
 export enum FeedVisibility {
   aadTenant = 'aadTenant',
   collection = 'collection',
@@ -424,3 +388,7 @@ export interface PackageResult {
   name: string;
   version: string;
 }
+
+export const packageApi = new PackageAPI(
+  new TaskConfig(tl.getEndpointAuthorizationParameter('SystemVssConnection', 'AccessToken', false)),
+);
