@@ -19,9 +19,9 @@ export class PackageAPI {
   }): Promise<PackageResult> {
     switch (type) {
       case ProtocolType.NuGet:
-        return await PackageAPI.extractPackages(filePath, PackageAPI.NuspecReader);
+        return await PackageAPI.extractPackages(filePath, PackageAPI.nuspecReader);
       case ProtocolType.Npm:
-        return await PackageAPI.extractPackages(filePath, PackageAPI.NpmReader);
+        return await PackageAPI.extractPackages(filePath, PackageAPI.npmReader);
       default:
         tl.warning(`not supported type ${type}`);
         break;
@@ -29,17 +29,18 @@ export class PackageAPI {
     return null;
   }
 
-  public static NuspecReader(fileData: string): PackageResult {
+  public static nuspecReader(fileData: string): PackageResult {
     if (!!parser.validate(fileData)) {
-      const jsonObj = parser.parse(fileData);
-      tl.debug(`NuspecReader: ${jsonObj}`);
-      return { name: jsonObj.package.metadata.id, version: jsonObj.package.metadata.version } as PackageResult;
+      const jsonObj: unknown = parser.parse(fileData);
+      tl.debug(`NuspecReader: ${JSON.stringify(jsonObj)}`);
+      return { name: jsonObj!.package.metadata.id, version: jsonObj.package.metadata.version } as PackageResult;
     }
   }
 
-  public static NpmReader(fileData: string): PackageResult {
-    const jsonObj = JSON.parse(fileData);
-    tl.debug(`NpmReader: ${jsonObj}`);
+  public static npmReader(fileData: string): PackageResult {
+    if (fileData == null) new Error('not allowed value: fileData is null');
+    const jsonObj: unknown = JSON.parse(fileData);
+    tl.debug(`NpmReader: ${JSON.stringify(jsonObj)}`);
     return jsonObj as PackageResult;
   }
 
@@ -200,7 +201,7 @@ export class PackageAPI {
       const [, pkg] = await Common.makeRequest({ token: pat, url: apiUrl });
       return pkg as PackageVersion;
     } catch (error) {
-      if (error.response.status === 404) {
+      if (error.response && error.response.status === 404) {
         tl.warning(`Package ${packageId} with version ${packageVersionId} not found`);
         return null;
       }

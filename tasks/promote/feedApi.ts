@@ -23,8 +23,8 @@ export class FeedAPI {
     }
     apiUrl += `_apis/packaging/feeds${apiVersion}`;
     const [status, feeds]: [number, ResponseList<Feed>] = await Common.makeRequest({ token: pat, url: apiUrl });
-    if (status === 200 && feeds!.count > 0) {
-      return feeds.value.find((x: Feed) => x.name === feedName) as Feed;
+    if (status === 200 && feeds.count > 0) {
+      return feeds.value.find((x: Feed) => x.name === feedName) ;
     }
   }
 
@@ -50,7 +50,7 @@ export class FeedAPI {
     apiUrl += `_apis/packaging/feeds${apiVersion}`;
     const [status, feeds]: [number, ResponseList<Feed>] = await Common.makeRequest({ token: pat, url: apiUrl });
     if (status === 200 && feeds.count > 0) {
-      return feeds.value.find((x: Feed) => x.id === feedId) as Feed;
+      return feeds.value.find((x: Feed) => x.id === feedId) ;
     }
   }
 }

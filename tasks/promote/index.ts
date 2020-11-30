@@ -3,7 +3,7 @@ import { PackageAPI } from './packageApi';
 import * as url from 'url';
 import * as fg from 'fast-glob';
 
-async function run() {
+const run = async () => {
   try {
     const option = readInputs();
     tl.debug(`Inputs: ${JSON.stringify(option)}`);
@@ -17,11 +17,11 @@ async function run() {
 
     const pat = tl.getEndpointAuthorizationParameter('SystemVssConnection', 'AccessToken', false);
 
-    switch (option.PackageType) {
-      case PackageType.nameVersion:
+    switch (option.packageType) {
+      case PackageTypeEnum.nameVersion:
         option.packageIds.forEach(async (pkgId) => {
           const pkgVersions = await PackageAPI.get({
-            org: option.TfsUri.org,
+            org: option.tfsUri.org,
             pat,
             feedId: option.feedId,
             packageId: pkgId,
@@ -34,7 +34,7 @@ async function run() {
             );
             if (
               !(await PackageAPI.promote({
-                org: option.TfsUri.org,
+                org: option.tfsUri.org,
                 pat,
                 feedId: option.feedId,
                 packageName: pkgVersions.value[0].author,
@@ -46,7 +46,7 @@ async function run() {
           }
         });
         break;
-      case PackageType.packageFiles:
+      case PackageTypeEnum.packageFiles:
         const files = await fg(option.packagesPattern, {
           onlyFiles: true,
           followSymbolicLinks: false,
@@ -57,7 +57,7 @@ async function run() {
         if (files == null || files.length === 0) {
           tl.setResult(
             tl.TaskResult.SucceededWithIssues,
-            `Not matched files with the flowing glob patterns ${option.PackagesPatterns}`,
+            `Not matched files with the flowing glob patterns ${JSON.stringify(option.packagesPatterns)}`,
           );
         }
 
@@ -67,7 +67,7 @@ async function run() {
           tl.debug(`promoting package ${pi.name}:${pi.version} into feed ${option.feedId} to view ${option.viewId}`);
           if (
             !(await PackageAPI.promote({
-              org: option.TfsUri.org,
+              org: option.tfsUrl.org,
               pat,
               feedId: option.feedId,
               packageName: pi.name,
@@ -80,15 +80,15 @@ async function run() {
         });
         break;
       default:
-        tl.setResult(tl.TaskResult.Failed, `Not supported package type yet ${PackageType}`);
+        tl.setResult(tl.TaskResult.Failed, `Not supported package type yet ${option.packageType}`);
     }
-  } catch (err) {
-    tl.debug(err.message);
-    tl.setResult(tl.TaskResult.Failed, err.message);
+  } catch ({ message }) {
+    tl.debug(message);
+    tl.setResult(tl.TaskResult.Failed, message);
   }
-}
+};
 
-function validateInputs(option: Option): [boolean, string[]] {
+const validateInputs = (option: Option): [boolean, string[]] => {
   let valid = true;
   const errors: string[] = [];
   if (option.viewId === '') {
@@ -96,9 +96,9 @@ function validateInputs(option: Option): [boolean, string[]] {
     errors.push("Invalid view entry: can't be empty");
   }
   return [valid, errors];
-}
+};
 
-function readInputs(): Option {
+const readInputs = (): Option => {
   const option: Option = new Option();
 
   option.viewId = tl.getInput('releaseview', true);
@@ -108,10 +108,10 @@ function readInputs(): Option {
   option.version = tl.getInput('version', false);
   option.type = tl.getInput('inputType', true);
   option.feedId = tl.getInput('feed', true);
-  option.tfsUri = tl.getVariable('system.teamfoundationserveruri');
+  option.tfsUrl = tl.getVariable('system.teamfoundationserveruri');
 
   return option;
-}
+};
 
 class Option {
   feedId: string;
@@ -121,22 +121,23 @@ class Option {
   packageIds?: string[];
   packagesPattern: string;
   packagesDirectory?: string;
-  tfsUri: string;
-  public get PackageType(): PackageType {
-    return this.type === 'nameVersion' ? PackageType.nameVersion : PackageType.packageFiles;
+  tfsUrl: string;
+  public get packageType(): PackageTypeEnum {
+    return this.type === 'nameVersion' ? PackageTypeEnum.nameVersion : PackageTypeEnum.packageFiles;
   }
 
-  public get PackagesPatterns(): string[] {
+  public get packagesPatterns(): string[] {
     return this.packagesPattern.split(/^|;/m);
   }
-  public get TfsUri(): TfsUri {
-    const q = url.parse(this.tfsUri);
+  public get tfsUri(): TfsUri {
+    const q = url.parse(this.tfsUrl);
     return { ...q, org: q.pathname.split('/')[1] } as TfsUri;
   }
 }
 
 type TfsUri = url.UrlWithStringQuery & { org: string };
-enum PackageType {
+
+enum PackageTypeEnum {
   packageFiles,
   nameVersion,
 }
