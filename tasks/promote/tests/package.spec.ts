@@ -55,8 +55,8 @@ describe('Package Api tests', () => {
     expect(pkg.name).to.eq(packageName);
   });
 
-  it('getInfo nuget should success',  () => {
-    const pkg = packageApi.getInfo({
+  it('getInfo nuget should success',  async () => {
+    const pkg = await packageApi.getInfo({
       filePath: path.join(packagesPath, 'gdrive.anomalies.library.1.0.0-alpha0024-1224.nupkg'),
     });
     expect(pkg).to.exist;
@@ -64,12 +64,22 @@ describe('Package Api tests', () => {
     expect(pkg.version).to.contains('1.0.0-alpha0024-1224');
   });
 
-  it('getInfo npm should success', () => {
-    const pkg = packageApi.getInfo({
-      filePath: path.join(packagesPath, 'package.json'),
+
+  it('getInfo npm tgz file should success', async () => {
+    const pkg = await packageApi.getInfo({
+      filePath: path.join(packagesPath, 'test-1.0.0.tgz'),
       type: ProtocolType.npm,
     });
     expect(pkg).to.exist;
-    expect(pkg.version).to.eq('1.1.0');
+    expect(pkg.version).to.eq('1.0.0');
+  });
+
+  it('getInfo pipy file should success', async () => {
+    const pkg = await packageApi.getInfo({
+      filePath: path.join(packagesPath, 'python-package-example-0.1.tar.gz'),
+      type: ProtocolType.pypi,
+    });
+    expect(pkg).to.exist;
+    expect(pkg.version).to.eq('0.1');
   });
 });

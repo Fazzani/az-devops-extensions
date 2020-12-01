@@ -7,10 +7,12 @@ Azure devops auto promote packages (nuget, npm) task
 ## TODO
 
 - [ ] npm task test (see: success.ts)
-- [ ] add sonar task to the solution
-- [ ] Enhance readme.md
-- [ ] Npm package test
-- [ ] Maven, pipy and universal to manage
+- [ ] add sonar extension to the solution
+- [ ] Enhance documentation (readme.md)
+- [ ] Supporting Maven and universal
+- [x] Npm package support
+- [x] Pipy support
+- [x] Nuget support
 - [x] Enhance az pipelines deployment only from master
 
 ## References

@@ -86,9 +86,9 @@ module.exports = {
     '@typescript-eslint/no-parameter-properties': 'off',
     '@typescript-eslint/no-this-alias': 'error',
     '@typescript-eslint/no-unnecessary-type-assertion': 'error',
-    '@typescript-eslint/no-unsafe-assignment': 'error',
+    '@typescript-eslint/no-unsafe-assignment': 'warn',
     '@typescript-eslint/no-unsafe-call': 'error',
-    '@typescript-eslint/no-unsafe-member-access': 'error',
+    '@typescript-eslint/no-unsafe-member-access': 'warn',
     '@typescript-eslint/no-unsafe-return': 'error',
     '@typescript-eslint/no-unused-expressions': 'error',
     '@typescript-eslint/no-unused-vars': 'warn',
@@ -110,7 +110,12 @@ module.exports = {
         lib: 'always',
       },
     ],
-    '@typescript-eslint/unbound-method': 'error',
+    '@typescript-eslint/unbound-method': [
+      'error',
+      {
+        ignoreStatic: true,
+      },
+    ],
     '@typescript-eslint/unified-signatures': 'error',
     complexity: 'off',
     'constructor-super': 'error',
@@ -178,7 +183,7 @@ module.exports = {
     'no-invalid-this': 'off',
     'no-new-wrappers': 'error',
     'no-shadow': [
-      'error',
+      'warn',
       {
         hoist: 'all',
       },

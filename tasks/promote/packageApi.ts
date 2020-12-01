@@ -1,16 +1,11 @@
-/* eslint-disable no-shadow */
-/* eslint-disable @typescript-eslint/unbound-method */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { JsonPatchOperation, JsonPatchOperationTypeEnum, ResponseList } from './commonApi';
 import * as tl from 'azure-pipelines-task-lib/task';
-import * as admzip from 'adm-zip';
 import * as parser from 'fast-xml-parser';
-import * as fs from 'fs';
 import path = require('path');
 import { ApiBase } from './common/apiBase';
 import { TaskConfig } from './common/taskConfig';
 import { feedApi } from './feedApi';
+import * as decompress from 'decompress';
 
 type CallbackFunctionVariadic = (...args: any[]) => PackageResult;
 
@@ -19,12 +14,37 @@ export class PackageAPI extends ApiBase {
     super(config);
   }
 
-  public getInfo({ filePath, type = ProtocolType.nuGet }: { filePath: string; type?: ProtocolType }): PackageResult {
+  /**
+   * Get package info from files
+   *
+   * @param param0 option
+   */
+  public async getInfo({
+    filePath,
+    type = ProtocolType.nuGet,
+  }: {
+    filePath: string;
+    type?: ProtocolType;
+  }): Promise<PackageResult> {
     switch (type) {
       case ProtocolType.nuGet:
-        return this.extractPackages(filePath, PackageAPI.nuspecReader);
+        return await this.extractPackages(
+          filePath,
+          (file) => path.extname(file.path) === '.nuspec',
+          PackageAPI.nuspecReader,
+        );
       case ProtocolType.npm:
-        return this.extractPackages(filePath, PackageAPI.npmReader);
+        return await this.extractPackages(
+          filePath,
+          (file) => path.basename(file.path) === 'package.json',
+          PackageAPI.npmReader,
+        );
+      case ProtocolType.pypi:
+        return await this.extractPackages(
+          filePath,
+          (file) => path.basename(file.path) === 'setup.py',
+          PackageAPI.pipyReader,
+        );
       default:
         tl.warning(`not supported type ${type}`);
         break;
@@ -32,14 +52,46 @@ export class PackageAPI extends ApiBase {
     return null;
   }
 
+  public static pipyReader(fileData: string): PackageResult {
+    if (fileData == null) new Error('Not allowed value: fileData is null');
+    const content = fileData.toString();
+    // eslint-disable-next-line @typescript-eslint/prefer-regexp-exec
+    const nameMatched = content.match(/name='(.*)',/m);
+    if (nameMatched.length > 1) {
+      // eslint-disable-next-line @typescript-eslint/prefer-regexp-exec
+      const versionMatched = content.match(/version='(.*)',/m);
+      if (versionMatched.length > 1) {
+        return { name: nameMatched[1], version: versionMatched[1] };
+      } else {
+        new Error("Couldn't matching pipy version");
+      }
+    }
+  }
+
+  /**
+   * Nuspec file reader
+   *
+   * @static
+   * @param {string} fileData
+   * @returns {PackageResult}
+   * @memberof PackageAPI
+   */
   public static nuspecReader(fileData: string): PackageResult {
-    if (!!parser.validate(fileData)) {
-      const jsonObj: any = parser.parse(fileData);
+    if (!!parser.validate(fileData.toString())) {
+      const jsonObj: any = parser.parse(fileData.toString());
       tl.debug(`NuspecReader: ${JSON.stringify(jsonObj)}`);
       return { name: jsonObj.package.metadata.id, version: jsonObj.package.metadata.version } as PackageResult;
     }
   }
 
+  /**
+   * Npm package file reader
+   *
+   * @static
+   * @param {string} fileData
+   * @returns {PackageResult}
+   * @memberof PackageAPI
+   */
   public static npmReader(fileData: string): PackageResult {
     if (fileData == null) new Error('not allowed value: fileData is null');
     const jsonObj: any = JSON.parse(fileData);
@@ -47,24 +99,26 @@ export class PackageAPI extends ApiBase {
     return jsonObj as PackageResult;
   }
 
-  public extractPackages(filePath: string, reader: CallbackFunctionVariadic): PackageResult {
+  /**
+   * Extract packages
+   *
+   * @param {string} filePath
+   * @param {any} filter
+   * @param {CallbackFunctionVariadic} reader
+   * @returns {PackageResult}
+   * @memberof PackageAPI
+   */
+  public async extractPackages(
+    filePath: string,
+    filter: any,
+    reader: CallbackFunctionVariadic,
+  ): Promise<PackageResult> {
     try {
-      const ext = path.extname(filePath);
-      switch (ext) {
-        case '.nupkg':
-        case '.zip':
-          const zipEntries = new admzip(filePath)
-            .getEntries()
-            .filter((e) => !e.isDirectory && e.name.endsWith('nuspec'));
-          if (zipEntries !== null && zipEntries.length > 0) {
-            return reader(zipEntries[0].getData().toString('utf-8'));
-          }
-          break;
-        case '.json':
-          const content = fs.readFileSync(filePath, { encoding: 'utf8' });
-          return reader(content);
-        default:
-          tl.debug(`Not supported extension ${ext}`);
+      const files = await decompress(filePath, '', {
+        filter,
+      });
+      if (files.length > 0) {
+        return reader(files[0].data);
       }
     } catch (err) {
       tl.warning(`${JSON.stringify(err)}`);
@@ -72,6 +126,33 @@ export class PackageAPI extends ApiBase {
     return null;
   }
 
+  /**
+   * Promote package to different views
+   *
+   * @param {{
+   *     org: string;
+   *     project?: string;
+   *     feedId: string;
+   *     packageName: string;
+   *     packageVersion: string;
+   *     packageType?: ProtocolType;
+   *     viewId?: string;
+   *     operation?: JsonPatchOperationTypeEnum;
+   *     baseUrl?: string;
+   *   }} {
+   *     org,
+   *     project,
+   *     feedId,
+   *     packageName,
+   *     packageVersion,
+   *     packageType = ProtocolType.nuGet,
+   *     viewId = 'Prerelease',
+   *     operation = JsonPatchOperationTypeEnum.add,
+   *     baseUrl = 'https://pkgs.dev.azure.com/',
+   *   }
+   * @returns {Promise<boolean>}
+   * @memberof PackageAPI
+   */
   public async promote({
     org,
     project,
@@ -124,6 +205,29 @@ export class PackageAPI extends ApiBase {
     }
   }
 
+  /**
+   * Get Package Version by name
+   *
+   * @param {{
+   *     org: string;
+   *     project?: string;
+   *     feedName: string;
+   *     packageName: string;
+   *     packageVersion: string;
+   *     packageType?: ProtocolType;
+   *     baseUrl?: string;
+   *   }} {
+   *     org,
+   *     project,
+   *     feedName,
+   *     packageName,
+   *     packageVersion,
+   *     packageType = ProtocolType.nuGet,
+   *     baseUrl = 'https://pkgs.dev.azure.com/',
+   *   }
+   * @returns {Promise<Package>}
+   * @memberof PackageAPI
+   */
   public async getVersionByName({
     org,
     project,
@@ -157,6 +261,11 @@ export class PackageAPI extends ApiBase {
     }
   }
 
+  /**
+   * Get Package version by id
+   *
+   * @param param0
+   */
   public async getVersionById({
     org,
     project,
@@ -191,6 +300,11 @@ export class PackageAPI extends ApiBase {
     }
   }
 
+  /**
+   * Get Package details
+   *
+   * @param param0 options
+   */
   public async get({
     org,
     project,
@@ -241,6 +355,11 @@ export class PackageAPI extends ApiBase {
     }
   }
 
+  /**
+   * Get Packages
+   *
+   * @param param0 options
+   */
   public async list({
     org,
     project,
@@ -273,6 +392,11 @@ export class PackageAPI extends ApiBase {
     return pkgs;
   }
 
+  /**
+   * Search package by name
+   *
+   * @param param0 option
+   */
   public async findByName({
     org,
     project,

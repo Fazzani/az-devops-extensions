@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/restrict-template-expressions */
-/* eslint-disable no-shadow */
 /* eslint-disable @typescript-eslint/no-misused-promises */
 import * as tl from 'azure-pipelines-task-lib/task';
 import * as url from 'url';
@@ -62,7 +61,7 @@ const run = async (): Promise<void> => {
 
         files.forEach(async (pp) => {
           tl.debug(`Searching with glob ${pp}into folder ${option.packagesDirectory}`);
-          const pi =  packageApi.getInfo({ filePath: pp });
+          const pi =  await packageApi.getInfo({ filePath: pp });
           tl.debug(`promoting package ${pi.name}:${pi.version} into feed ${option.feedId} to view ${option.viewId}`);
           if (
             !(await packageApi.promote({
