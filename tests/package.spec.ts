@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unused-expressions */
 // import * as ttm from 'azure-pipelines-task-lib/mock-test';
 import 'mocha';
-import { packageApi, ProtocolType } from '../packageApi';
-import { feedApi, } from '../feedApi';
+import { packageApi, ProtocolType } from '../tasks/promote/packageApi';
+import { feedApi, } from '../tasks/promote/feedApi';
 import { expect } from 'chai';
 import fs = require('fs');
 import path = require('path');

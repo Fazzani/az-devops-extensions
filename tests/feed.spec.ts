@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-expressions */
 import 'mocha';
-import { feedApi } from '../feedApi';
+import { feedApi } from '../tasks/promote/feedApi';
 import { expect } from 'chai';
 
 describe('Feed Api tests', () => {

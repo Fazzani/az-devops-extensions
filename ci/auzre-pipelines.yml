@@ -150,7 +150,7 @@ stages:
             displayName: 'Packaging ${{ p.id }}'
             inputs:
               rootFolder: '$(System.DefaultWorkingDirectory)'
-              outputPath: '$(Build.ArtifactStagingDirectory)/${{ p.id }}.vsix'
+              outputPath: '$(Build.ArtifactStagingDirectory)/$(PublisherID).${{ p.id }}.vsix'
               publisherId: '$(PublisherID)'
               extensionId: '${{ p.id }}'
               extensionName: '${{ p.name }}'
@@ -190,7 +190,7 @@ stages:
               connectTo: 'VsTeam'
               connectedServiceName: '$(marketplace_service_conn)'
               fileType: 'vsix'
-              vsixFile: './extensions/$(PublisherID).${{ p.id }}-*.vsix'
+              vsixFile: './extensions/$(PublisherID).${{ p.id }}.vsix'
               publisherId: '$(PublisherID)'
               extensionId: '${{ p.id }}'
               extensionName: '${{ p.name }}'
