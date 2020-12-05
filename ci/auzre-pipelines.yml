@@ -2,19 +2,6 @@ name: $(SourceBranchName)_$(date:yyyyMMdd)$(rev:.r)
 pool:
   vmImage: Ubuntu-20.04
 
-parameters:
-- name: 'extensions'
-  type: object
-  default:
-  - name: "promote artifact"
-    id: prom-art
-    visibility: 'public' # private,public
-    folder: promote
-  - name: "Release variables updater"
-    id: "release-vars-updater"
-    visibility: 'public'
-    folder: varsupdater
-
 pr:
   branches:
     include:
@@ -53,65 +40,65 @@ variables:
 - name: ArtifactName
   value: task
 - name: "ExtensionID"
-  value: "prom-art"
+  value: "synker-tools"
 - name: "ExtensionName"
-  value: "promote artifact"
+  value: "synker tools"
 - name: EXT_VERSION
   value: "1.0.0"
 
 stages:
-# - stage: Build
-#   jobs:
-#   - job:
-#     steps:
-#     - checkout: self
-#       persistCredentials: true
-#       clean: true
-#     - task: NodeTool@0
-#       inputs:
-#         versionSpec: $(node_version)
-#     - task: Npm@1
-#       displayName: 'Install'
-#       inputs:
-#         command: 'custom'
-#         customCommand: 'run initdev'
-#     - task: Npm@1
-#       displayName: 'Lint'
-#       continueOnError: true
-#       inputs:
-#         command: custom
-#         verbose: false
-#         customCommand: 'run lint'
-#     - task: Npm@1
-#       displayName: 'Build'
-#       inputs:
-#         command: custom
-#         verbose: false
-#         customCommand: 'run build'
-#     - script: |
-#        export ENDPOINT_AUTH_PARAMETER_SYSTEMVSSCONNECTION_ACCESSTOKEN=$(PAT_HENI_FAZZANI_ARTIFACTS)
-#        npm run tests
-#       displayName: 'Test'
-#     - task: PublishTestResults@2
-#       displayName: 'Publish tests results'
-#       enabled: false
-#       inputs:
-#         testResultsFormat: 'JUnit'
-#         testResultsFiles: '**/ResultsFile.xml'
-#     - task: SnykSecurityScan@0
-#       displayName: Security Scan
-#       inputs:
-#         serviceConnectionEndpoint: 'snyk'
-#         testType: 'app'
-#         severityThreshold: 'medium'
-#         monitorOnBuild: false
-#         additionalArguments: '--all-projects --detection-depth=6'
-#         failOnIssues: false
-#         projectName: 'as-tasks'
+- stage: Build
+  jobs:
+  - job:
+    steps:
+    - checkout: self
+      persistCredentials: true
+      clean: true
+    - task: NodeTool@0
+      inputs:
+        versionSpec: $(node_version)
+    - task: Npm@1
+      displayName: 'Install'
+      inputs:
+        command: 'custom'
+        customCommand: 'run initdev'
+    - task: Npm@1
+      displayName: 'Lint'
+      continueOnError: true
+      inputs:
+        command: custom
+        verbose: false
+        customCommand: 'run lint'
+    - task: Npm@1
+      displayName: 'Build'
+      inputs:
+        command: custom
+        verbose: false
+        customCommand: 'run build'
+    - script: |
+       export ENDPOINT_AUTH_PARAMETER_SYSTEMVSSCONNECTION_ACCESSTOKEN=$(PAT_HENI_FAZZANI_ARTIFACTS)
+       npm run tests
+      displayName: 'Test'
+    - task: PublishTestResults@2
+      displayName: 'Publish tests results'
+      enabled: false
+      inputs:
+        testResultsFormat: 'JUnit'
+        testResultsFiles: '**/ResultsFile.xml'
+    - task: SnykSecurityScan@0
+      displayName: Security Scan
+      inputs:
+        serviceConnectionEndpoint: 'snyk'
+        testType: 'app'
+        severityThreshold: 'medium'
+        monitorOnBuild: false
+        additionalArguments: '--all-projects --detection-depth=6'
+        failOnIssues: false
+        projectName: 'as-tasks'
 
 - stage: Package
   # condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
-  # dependsOn: Build
+  dependsOn: Build
   jobs:
   - job:
     steps:
@@ -130,12 +117,11 @@ stages:
           targetType: "inline"
           script: |
             tsc
-      # - ${{ each p in parameters.extensions }}:
       - bash: echo '##vso[task.setvariable variable=Task.Extension.Version]1.0.0'
         displayName: Reset Extension version variable
       - task: QueryAzureDevOpsExtensionVersion@3
         continueOnError: true
-        displayName: 'Get Extension Version ${{ p.id }}'
+        displayName: 'Get Extension Version'
         timeoutInMinutes: 1
         inputs:
           connectTo: 'VsTeam'
@@ -150,10 +136,10 @@ stages:
         displayName: 'Packaging'
         inputs:
           rootFolder: '$(System.DefaultWorkingDirectory)'
-          outputPath: '$(Build.ArtifactStagingDirectory)/$(PublisherID).$(ExtensionID).vsix'
+          outputPath: '$(Build.ArtifactStagingDirectory)/$(ExtensionID).vsix'
           publisherId: '$(PublisherID)'
           extensionId: '$(ExtensionID)'
-          extensionName: '$(PublisherID)-tools'
+          extensionName: '$(ExtensionName)'
           extensionVersion: '$(Task.Extension.Version)'
           extensionTag: '-build'
           updateTasksVersion: true
@@ -183,17 +169,16 @@ stages:
             downloadType: "single"
             artifactName: 'extensions'
             downloadPath: "$(System.DefaultWorkingDirectory)/"
-        # - ${{ each p in parameters.extensions }}:
         - task: PublishAzureDevOpsExtension@3
           displayName: 'Publish extension'
           inputs:
             connectTo: 'VsTeam'
             connectedServiceName: '$(marketplace_service_conn)'
             fileType: 'vsix'
-            vsixFile: './extensions/$(PublisherID).$(ExtensionID).vsix'
+            vsixFile: './extensions/*.vsix'
             publisherId: '$(PublisherID)'
             extensionId: '$(ExtensionID)'
-            extensionName: '$(PublisherID)-tools'
+            extensionName: '$(ExtensionName)'
             updateTasksVersion: false
             extensionVisibility: 'public'
             extensionPricing: 'free'

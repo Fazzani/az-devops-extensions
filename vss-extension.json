@@ -1,7 +1,7 @@
 {
   "manifestVersion": 1,
-  "id": "prom-art",
-  "name": "promote artifact",
+  "id": "synker-tools",
+  "name": "synker tools",
   "version": "1.0.0",
   "publisher": "synker",
   "content": {
@@ -17,18 +17,36 @@
     "color": "rgb(243, 243, 243)",
     "theme": "dark"
   },
+  "links": {
+    "repository": {
+      "uri": "https://github.com/Fazzani/az-tasks"
+    },
+    "issues": {
+      "uri": "https://github.com/Fazzani/az-tasks/issues"
+    },
+    "support": {
+      "uri": "mailto:heni.fazzani@gmail.com"
+    }
+  },
   "repository": {
     "type": "git",
     "uri": "https://github.com/Fazzani/az-tasks"
   },
-  "tags": ["artifacts", "promote"],
+  "badges": [
+    {
+      "href": "https://dev.azure.com/henifazzani/SynkerAPI/_build/latest?definitionId=29&branchName=main",
+      "uri": "https://dev.azure.com/henifazzani/SynkerAPI/_apis/build/status/Fazzani.az-task-promote?branchName=main",
+      "description": "Build"
+    }
+  ],
+  "tags": ["artifacts", "promote", "variables"],
   "targets": [
     {
       "id": "Microsoft.VisualStudio.Services"
     }
   ],
   "scopes": ["vso.packaging_manage", "vso.release_execute"],
-  "description": "Tool for auto promoting artifacts (nuget, npm) from differents views (Local, Prerelease, Release)",
+  "description": "Tool for auto promoting artifacts, release variables updater and many awesome tools",
   "categories": ["Azure Pipelines"],
   "icons": {
     "default": "images/extension-icon.png"
