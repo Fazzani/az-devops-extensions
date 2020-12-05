@@ -1,6 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/Microsoft/azure-pipelines-task-lib/master/tasks.schema.json",
-  "id": "3489929c-c1a4-4e9b-bfb5-116593eb21f9",
+  "id": "3559929c-c1a4-4e9b-bfb5-116593eb21f9",
   "name": "release-vars-updater",
   "friendlyName": "Release variables updater",
   "description": "This extension enables you to create/update release variables in your Azure Pipelines.",

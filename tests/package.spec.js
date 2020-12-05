@@ -10,8 +10,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 require("mocha");
-const packageApi_1 = require("../packageApi");
-const feedApi_1 = require("../feedApi");
+const packageApi_1 = require("../tasks/promote/packageApi");
+const feedApi_1 = require("../tasks/promote/feedApi");
 const chai_1 = require("chai");
 const fs = require("fs");
 const path = require("path");

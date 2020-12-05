@@ -6,10 +6,10 @@
 
 - [Promote artifacts](./tasks/promote/README.md)
 - [Release variable updater](./tasks/varsupdater/README.md)
+- [Sonar project manager](./tasks/sonar/README.md)
 
 ## TODO
 
-- [ ] add sonar extension to the solution
 - [ ] Enhance documentation (readme.md)
 - [ ] Create npm package for common library
 
