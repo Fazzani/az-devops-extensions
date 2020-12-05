@@ -2,6 +2,17 @@ name: $(SourceBranchName)_$(date:yyyyMMdd)$(rev:.r)
 pool:
   vmImage: ubuntu-latest
 
+parameters:
+- name: 'extensions'
+  type: object
+  default:
+  - name: "promote artifact"
+    id: prom-art
+    visibility: 'public' # private,public
+  - name: "Release variables updater"
+    id: "release-vars-updater"
+    visibility: 'public'
+
 pr:
   branches:
     include:
@@ -35,16 +46,16 @@ variables:
   value: "v0.8.x"
 - name: PublisherID
   value: "synker"
-- name: "ExtensionID"
-  value: "prom-art"
-- name: "ExtensionName"
-  value: "promote artifact"
 - name: marketplace_service_conn
   value: vs_marketplace
-- name: ArtifactName
-  value: task
-- name: EXT_VERSION
-  value: "1.0.0"
+# - name: ArtifactName
+#   value: task
+# - name: "ExtensionID"
+#   value: "prom-art"
+# - name: "ExtensionName"
+#   value: "promote artifact"
+# - name: EXT_VERSION
+#   value: "1.0.0"
 
 stages:
 - stage: Build
@@ -116,41 +127,41 @@ stages:
           targetType: "inline"
           script: |
             tsc
-      - task: QueryAzureDevOpsExtensionVersion@3
-        continueOnError: true
-        displayName: Get Extension Version
-        inputs:
-          connectTo: 'VsTeam'
-          connectedServiceName: '$(marketplace_service_conn)'
-          publisherId: '$(PublisherID)'
-          extensionId: '$(ExtensionID)'
-          versionAction: 'Patch'
-          outputVariable: 'Task.Extension.Version'
-          # extensionVersionOverride: 'EXT_VERSION'
-          setBuildNumber: true
-
-      - task: PackageAzureDevOpsExtension@3
-        inputs:
-          rootFolder: '$(System.DefaultWorkingDirectory)'
-          publisherId: '$(PublisherID)'
-          extensionId: '$(ExtensionID)'
-          extensionName: '$(ExtensionName)'
-          extensionVersion: '$(Task.Extension.Version)'
-          extensionTag: '-build'
-          updateTasksVersion: true
-          updateTasksVersionType: 'patch'
-          extensionVisibility: private #'public'
-          extensionPricing: 'free'
-      - task: CopyFiles@2
-        displayName: "Copy Files to: $(Build.ArtifactStagingDirectory)"
-        inputs:
-          Contents: "**/*.vsix"
-          TargetFolder: "$(Build.ArtifactStagingDirectory)"
-      - task: PublishBuildArtifacts@1
-        inputs:
-          PathtoPublish: '$(Build.ArtifactStagingDirectory)'
-          ArtifactName: '$(ArtifactName)'
-          publishLocation: 'Container'
+      - ${{ each p in parameters.extensions }}:
+          - task: QueryAzureDevOpsExtensionVersion@3
+            continueOnError: true
+            displayName: Get Extension Version
+            inputs:
+              connectTo: 'VsTeam'
+              connectedServiceName: '$(marketplace_service_conn)'
+              publisherId: '$(PublisherID)'
+              extensionId: '${{ parameters.id }}'
+              versionAction: 'Patch'
+              outputVariable: 'Task.Extension.Version'
+              # extensionVersionOverride: 'EXT_VERSION'
+              setBuildNumber: true
+          - task: PackageAzureDevOpsExtension@3
+            inputs:
+              rootFolder: '$(System.DefaultWorkingDirectory)'
+              publisherId: '$(PublisherID)'
+              extensionId: '${{ p.id }}'
+              extensionName: '${{ p.name }}'
+              extensionVersion: '$(Task.Extension.Version)'
+              extensionTag: '-build'
+              updateTasksVersion: true
+              updateTasksVersionType: 'patch'
+              extensionVisibility: ${{ p.visibility  }}
+              extensionPricing: 'free'
+          - task: CopyFiles@2
+            displayName: "Copy Files to: $(Build.ArtifactStagingDirectory)"
+            inputs:
+              Contents: "**/*.vsix"
+              TargetFolder: "$(Build.ArtifactStagingDirectory)"
+          - task: PublishBuildArtifacts@1
+            inputs:
+              PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+              ArtifactName: ${{ p.id }}
+              publishLocation: 'Container'
 
 - stage: Publish
   dependsOn: Package
@@ -161,21 +172,22 @@ stages:
         - task: TfxInstaller@3
           inputs:
             version: $(tfx_version)
-        - task: DownloadBuildArtifacts@0
-          inputs:
-            buildType: "current"
-            downloadType: "single"
-            artifactName: "$(ArtifactName)"
-            downloadPath: "$(System.DefaultWorkingDirectory)"
-        - task: PublishAzureDevOpsExtension@3
-          inputs:
-            connectTo: 'VsTeam'
-            connectedServiceName: '$(marketplace_service_conn)'
-            fileType: 'vsix'
-            vsixFile: './$(ArtifactName)/$(PublisherID).*.vsix'
-            publisherId: '$(PublisherID)'
-            extensionId: '$(ExtensionID)'
-            extensionName: '$(ExtensionName)'
-            updateTasksVersion: false
-            extensionVisibility: 'public'
-            extensionPricing: 'free'
+        - ${{ each p in parameters.extensions }}:
+          - task: DownloadBuildArtifacts@0
+            inputs:
+              buildType: "current"
+              downloadType: "single"
+              artifactName: '${{ p.id }}'
+              downloadPath: "$(System.DefaultWorkingDirectory)"
+          - task: PublishAzureDevOpsExtension@3
+            inputs:
+              connectTo: 'VsTeam'
+              connectedServiceName: '$(marketplace_service_conn)'
+              fileType: 'vsix'
+              vsixFile: './${{ p.id }}/$(PublisherID).*.vsix'
+              publisherId: '$(PublisherID)'
+              extensionId: '${{ p.id }}'
+              extensionName: '${{ p.name }}'
+              updateTasksVersion: false
+              extensionVisibility: '${{ p.visibility }}'
+              extensionPricing: 'free'
