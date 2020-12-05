@@ -1,6 +1,6 @@
 name: $(SourceBranchName)_$(date:yyyyMMdd)$(rev:.r)
 pool:
-  vmImage: ubuntu-latest
+  vmImage: Ubuntu-20.04
 
 parameters:
 - name: 'extensions'
@@ -9,9 +9,11 @@ parameters:
   - name: "promote artifact"
     id: prom-art
     visibility: 'public' # private,public
+    folder: promote
   - name: "Release variables updater"
     id: "release-vars-updater"
     visibility: 'public'
+    folder: varsupdater
 
 pr:
   branches:
@@ -58,62 +60,63 @@ variables:
 #   value: "1.0.0"
 
 stages:
-- stage: Build
-  jobs:
-  - job:
-    steps:
-    - checkout: self
-      persistCredentials: true
-      clean: true
-    - task: NodeTool@0
-      inputs:
-        versionSpec: $(node_version)
-    - task: Npm@1
-      displayName: 'Install'
-      inputs:
-        command: 'custom'
-        customCommand: 'run initdev'
-    - task: Npm@1
-      displayName: 'Lint'
-      continueOnError: true
-      inputs:
-        command: custom
-        verbose: false
-        customCommand: 'run lint'
-    - task: Npm@1
-      displayName: 'Build'
-      inputs:
-        command: custom
-        verbose: false
-        customCommand: 'run build'
-    - script: |
-       export ENDPOINT_AUTH_PARAMETER_SYSTEMVSSCONNECTION_ACCESSTOKEN=$(PAT_HENI_FAZZANI_ARTIFACTS)
-       npm run tests
-      displayName: 'Test'
-    - task: PublishTestResults@2
-      displayName: 'Publish tests results'
-      enabled: false
-      inputs:
-        testResultsFormat: 'JUnit'
-        testResultsFiles: '**/ResultsFile.xml'
-    - task: SnykSecurityScan@0
-      displayName: Security Scan
-      inputs:
-        serviceConnectionEndpoint: 'snyk'
-        testType: 'app'
-        severityThreshold: 'medium'
-        monitorOnBuild: false
-        additionalArguments: '--all-projects --detection-depth=6'
-        failOnIssues: false
-        projectName: 'as-tasks'
+# - stage: Build
+#   jobs:
+#   - job:
+#     steps:
+#     - checkout: self
+#       persistCredentials: true
+#       clean: true
+#     - task: NodeTool@0
+#       inputs:
+#         versionSpec: $(node_version)
+#     - task: Npm@1
+#       displayName: 'Install'
+#       inputs:
+#         command: 'custom'
+#         customCommand: 'run initdev'
+#     - task: Npm@1
+#       displayName: 'Lint'
+#       continueOnError: true
+#       inputs:
+#         command: custom
+#         verbose: false
+#         customCommand: 'run lint'
+#     - task: Npm@1
+#       displayName: 'Build'
+#       inputs:
+#         command: custom
+#         verbose: false
+#         customCommand: 'run build'
+#     - script: |
+#        export ENDPOINT_AUTH_PARAMETER_SYSTEMVSSCONNECTION_ACCESSTOKEN=$(PAT_HENI_FAZZANI_ARTIFACTS)
+#        npm run tests
+#       displayName: 'Test'
+#     - task: PublishTestResults@2
+#       displayName: 'Publish tests results'
+#       enabled: false
+#       inputs:
+#         testResultsFormat: 'JUnit'
+#         testResultsFiles: '**/ResultsFile.xml'
+#     - task: SnykSecurityScan@0
+#       displayName: Security Scan
+#       inputs:
+#         serviceConnectionEndpoint: 'snyk'
+#         testType: 'app'
+#         severityThreshold: 'medium'
+#         monitorOnBuild: false
+#         additionalArguments: '--all-projects --detection-depth=6'
+#         failOnIssues: false
+#         projectName: 'as-tasks'
 
 - stage: Package
-  condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
-  dependsOn: Build
+  # condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
+  # dependsOn: Build
   jobs:
   - job:
     steps:
       - task: TfxInstaller@3
+        displayName: 'Install Tfx $(tfx_version)'
         inputs:
           version: $(tfx_version)
       - task: Npm@1
@@ -128,21 +131,26 @@ stages:
           script: |
             tsc
       - ${{ each p in parameters.extensions }}:
+          - bash: echo '##vso[task.setvariable variable=Task.Extension.Version]1.0.0'
+            displayName: Reset Extension version variable
           - task: QueryAzureDevOpsExtensionVersion@3
             continueOnError: true
-            displayName: Get Extension Version
+            displayName: 'Get Extension Version ${{ p.id }}'
+            timeoutInMinutes: 1
             inputs:
               connectTo: 'VsTeam'
               connectedServiceName: '$(marketplace_service_conn)'
               publisherId: '$(PublisherID)'
-              extensionId: '${{ parameters.id }}'
+              extensionId: '${{ p.id }}'
               versionAction: 'Patch'
               outputVariable: 'Task.Extension.Version'
               # extensionVersionOverride: 'EXT_VERSION'
               setBuildNumber: true
           - task: PackageAzureDevOpsExtension@3
+            displayName: 'Packaging ${{ p.id }}'
             inputs:
               rootFolder: '$(System.DefaultWorkingDirectory)'
+              outputPath: '$(Build.ArtifactStagingDirectory)/${{ p.id }}.vsix'
               publisherId: '$(PublisherID)'
               extensionId: '${{ p.id }}'
               extensionName: '${{ p.name }}'
@@ -150,41 +158,39 @@ stages:
               extensionTag: '-build'
               updateTasksVersion: true
               updateTasksVersionType: 'patch'
-              extensionVisibility: ${{ p.visibility  }}
+              extensionVisibility: ${{ p.visibility }}
               extensionPricing: 'free'
-          - task: CopyFiles@2
-            displayName: "Copy Files to: $(Build.ArtifactStagingDirectory)"
-            inputs:
-              Contents: "**/*.vsix"
-              TargetFolder: "$(Build.ArtifactStagingDirectory)"
-          - task: PublishBuildArtifacts@1
-            inputs:
-              PathtoPublish: '$(Build.ArtifactStagingDirectory)'
-              ArtifactName: ${{ p.id }}
-              publishLocation: 'Container'
+      - task: PublishBuildArtifacts@1
+        displayName: 'Publish artifacts extensions'
+        inputs:
+          PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+          ArtifactName: extensions
+          publishLocation: 'Container'
 
 - stage: Publish
   dependsOn: Package
-  condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
+  # condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
   jobs:
     - job:
       steps:
         - task: TfxInstaller@3
+          displayName: 'Install Tfx $(tfx_version)'
           inputs:
             version: $(tfx_version)
+        - task: DownloadBuildArtifacts@0
+          inputs:
+            buildType: "current"
+            downloadType: "single"
+            artifactName: 'extensions'
+            downloadPath: "$(System.DefaultWorkingDirectory)/"
         - ${{ each p in parameters.extensions }}:
-          - task: DownloadBuildArtifacts@0
-            inputs:
-              buildType: "current"
-              downloadType: "single"
-              artifactName: '${{ p.id }}'
-              downloadPath: "$(System.DefaultWorkingDirectory)"
           - task: PublishAzureDevOpsExtension@3
+            displayName: 'Publish extension ${{ p.id }}'
             inputs:
               connectTo: 'VsTeam'
               connectedServiceName: '$(marketplace_service_conn)'
               fileType: 'vsix'
-              vsixFile: './${{ p.id }}/$(PublisherID).*.vsix'
+              vsixFile: './extensions/$(PublisherID).${{ p.id }}-*.vsix'
               publisherId: '$(PublisherID)'
               extensionId: '${{ p.id }}'
               extensionName: '${{ p.name }}'

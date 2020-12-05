@@ -9,7 +9,6 @@
 
 ## TODO
 
-- [ ] fix az pipeline to support multiple extensions
 - [ ] add sonar extension to the solution
 - [ ] Enhance documentation (readme.md)
 - [ ] Create npm package for common library

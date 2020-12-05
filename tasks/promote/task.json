@@ -137,6 +137,5 @@
     "Node10": {
       "target": "index.js"
     }
-  },
-  "version.Patch": 5
+  }
 }
