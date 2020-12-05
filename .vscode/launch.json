@@ -19,6 +19,21 @@
             ],
             "envFile": "${workspaceFolder}/.env"
         },
+         {
+            "type": "node",
+            "request": "launch",
+            "name": "Launch varsupdater",
+            "console": "integratedTerminal",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "program": "${workspaceFolder}/tasks/varsupdater/index.ts",
+            "preLaunchTask": "tsc: build - tsconfig.json",
+            "outFiles": [
+                "${workspaceFolder}/**/*.js"
+            ],
+            "envFile": "${workspaceFolder}/.env"
+        },
         {
                 "type": "node",
                 "request": "launch",

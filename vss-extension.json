@@ -27,7 +27,7 @@
       "id": "Microsoft.VisualStudio.Services"
     }
   ],
-  "scopes": ["vso.packaging_manage"],
+  "scopes": ["vso.packaging_manage", "vso.release_execute"],
   "description": "Tool for auto promoting artifacts (nuget, npm) from differents views (Local, Prerelease, Release)",
   "categories": ["Azure Pipelines"],
   "icons": {
@@ -36,6 +36,9 @@
   "files": [
     {
       "path": "tasks/promote"
+    },
+    {
+      "path": "tasks/varsupdater"
     },
     {
       "path": "images",
@@ -49,6 +52,14 @@
       "targets": ["ms.vss-distributed-task.tasks"],
       "properties": {
         "name": "tasks/promote"
+      }
+    },
+    {
+      "id": "348a929c-c1a4-4e8b-bfb5-116593eb21f9",
+      "type": "ms.vss-distributed-task.task",
+      "targets": ["ms.vss-distributed-task.tasks"],
+      "properties": {
+        "name": "tasks/varsupdater"
       }
     }
   ]
