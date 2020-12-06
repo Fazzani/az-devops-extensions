@@ -1,6 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/Microsoft/azure-pipelines-task-lib/master/tasks.schema.json",
-  "id": "348a929c-c1a4-4e8b-bfb5-116593eb20f9",
+  "id": "355a929c-c1a4-4e8b-bfb5-116593eb20f9",
   "name": "prom-art",
   "friendlyName": "Promote artifacts",
   "description": "Azure devops task to auto promote packages to different view ",
