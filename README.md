@@ -2,6 +2,8 @@
 
 [![Build Status](https://dev.azure.com/henifazzani/SynkerAPI/_apis/build/status/az-devops-extensions?branchName=main)](https://dev.azure.com/henifazzani/SynkerAPI/_build/latest?definitionId=31&branchName=main)
 
+[![Known Vulnerabilities](https://snyk.io/test/github/fazzani/az-devops-extensions/badge.svg)](https://snyk.io/test/github/fazzani/az-devops-extensions)
+
 ## Extensions
 
 - [Auto promote azure devops artifacts extension](./tasks/promote/README.md)
