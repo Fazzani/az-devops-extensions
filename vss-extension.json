@@ -59,13 +59,16 @@
       "path": "tasks/varsupdater"
     },
     {
+      "path": "tasks/sonar"
+    },
+    {
       "path": "images",
       "addressable": true
     }
   ],
   "contributions": [
     {
-      "id": "348a929c-c1a4-4e8b-bfb5-116593eb20f9",
+      "id": "355a929c-c1a4-4e8b-bfb5-116593eb20f9",
       "type": "ms.vss-distributed-task.task",
       "targets": ["ms.vss-distributed-task.tasks"],
       "properties": {
@@ -73,11 +76,19 @@
       }
     },
     {
-      "id": "3489929c-c1a4-4e9b-bfb5-116593eb21f9",
+      "id": "3559929c-c1a4-4e9b-bfb5-116593eb21f9",
       "type": "ms.vss-distributed-task.task",
       "targets": ["ms.vss-distributed-task.tasks"],
       "properties": {
         "name": "tasks/varsupdater"
+      }
+    },
+    {
+      "id": "355a929c-c1a4-4e8b-bfb4-116583ec20f9",
+      "type": "ms.vss-distributed-task.task",
+      "targets": ["ms.vss-distributed-task.tasks"],
+      "properties": {
+        "name": "tasks/sonar"
       }
     }
   ]
