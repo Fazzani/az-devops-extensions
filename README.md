@@ -1,6 +1,6 @@
 # Azure Devops Extensions
 
-[![Build Status](https://dev.azure.com/henifazzani/SynkerAPI/_apis/build/status/Fazzani.az-task-promote?branchName=main)](https://dev.azure.com/henifazzani/SynkerAPI/_build/latest?definitionId=29&branchName=main)
+[![Build Status](https://dev.azure.com/henifazzani/SynkerAPI/_apis/build/status/az-devops-extensions?branchName=main)](https://dev.azure.com/henifazzani/SynkerAPI/_build/latest?definitionId=31&branchName=main)
 
 ## Extensions
 
