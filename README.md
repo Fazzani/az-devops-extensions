@@ -4,9 +4,9 @@
 
 ## Extensions
 
-- [Promote artifacts](./tasks/promote/README.md)
-- [Release variable updater](./tasks/varsupdater/README.md)
-- [Sonar project manager](./tasks/sonar/README.md)
+- [Auto promote azure devops artifacts extension](./tasks/promote/README.md)
+- [Azure devops Release variable updater extension](./tasks/varsupdater/README.md)
+- [Azure devops Sonar project manager extension](./tasks/sonar/README.md)
 
 ## TODO
 

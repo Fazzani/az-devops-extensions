@@ -188,3 +188,18 @@ stages:
               connectedServiceName: '$(marketplace_service_conn)'
               method: 'vsix'
               vsixFile: '$(publishProd.Extension.OutputPath)'
+
+          - task: GitHubRelease@1
+            inputs:
+              gitHubConnection: 'Github-fazzani-pat'
+              repositoryName: '$(Build.Repository.Name)'
+              action: 'create'
+              target: '$(Build.SourceVersion)'
+              tagSource: 'userSpecifiedTag'
+              tag: '$(Build.BuildNumber)'
+              title: '$(Build.BuildNumber)'
+              releaseNotesSource: 'inline'
+              assets: '$(publishProd.Extension.OutputPath)*'
+              changeLogCompareToRelease: 'lastFullRelease'
+              changeLogType: 'commitBased'
+              changeLogLabels: '[{ "state" : "closed" }]'

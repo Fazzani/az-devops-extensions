@@ -1,9 +1,9 @@
 {
   "manifestVersion": 1,
   "id": "synker-tools",
-  "name": "synker tools",
+  "name": "Synker tools",
   "version": "1.0.0",
-  "publisher": "synker",
+  "publisher": "Synker",
   "content": {
     "license": {
       "path": "license.md"
@@ -46,7 +46,7 @@
     }
   ],
   "scopes": ["vso.packaging_manage", "vso.release_execute"],
-  "description": "Tool for auto promoting artifacts, release variables updater and many awesome tools",
+  "description": "Extension for auto promoting artifacts, release variables updater and many awesome tools",
   "categories": ["Azure Pipelines"],
   "icons": {
     "default": "images/extension-icon.png"
