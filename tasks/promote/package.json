@@ -3,7 +3,7 @@
   "description": "promo-art",
   "dependencies": {
     "axios": "^0.21.1",
-    "azure-pipelines-task-lib": "^2.11.3",
+    "azure-pipelines-task-lib": "^2.11.4",
     "decompress": "^4.2.1",
     "fast-glob": "^3.2.4",
     "fast-xml-parser": "^3.17.4",
