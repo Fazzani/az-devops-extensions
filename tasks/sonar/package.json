@@ -2,7 +2,7 @@
   "name": "release-vars-updater",
   "description": "This extension enables you to create/update release variables in your Azure Pipelines.",
   "dependencies": {
-    "axios": "^0.21.0",
+    "axios": "^0.21.1",
     "azure-pipelines-task-lib": "^2.11.3",
     "util": "^0.12.3",
     "qs": "6.9.4"
