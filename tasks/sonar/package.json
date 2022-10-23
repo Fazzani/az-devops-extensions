@@ -3,7 +3,7 @@
   "description": "This extension enables you to create/update release variables in your Azure Pipelines.",
   "dependencies": {
     "axios": "^0.21.0",
-    "azure-pipelines-task-lib": "^2.11.3",
+    "azure-pipelines-task-lib": "^3.3.1",
     "util": "^0.12.3",
     "qs": "6.9.6"
   }
