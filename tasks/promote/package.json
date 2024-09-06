@@ -2,10 +2,10 @@
   "name": "promote",
   "description": "promo-art",
   "dependencies": {
-    "axios": "^0.21.1",
-    "azure-pipelines-task-lib": "^2.11.4",
+    "axios": "^1.6.8",
+    "azure-pipelines-task-lib": "^4.16.0",
     "decompress": "^4.2.1",
-    "fast-glob": "^3.2.5",
+    "fast-glob": "^3.2.6",
     "fast-xml-parser": "^3.17.5",
     "util": "^0.12.3"
   }
